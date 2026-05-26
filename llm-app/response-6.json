@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-90be0e8c-674d-4a63-bce3-30cdcf508ba8",
+  "object": "chat.completion",
+  "created": 1779255435,
+  "model": "llama-3.3-70b-versatile",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "There are 100 orders."
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.157632194,
+    "prompt_tokens": 1616,
+    "prompt_time": 0.092613484,
+    "completion_tokens": 7,
+    "completion_time": 0.024502038,
+    "total_tokens": 1623,
+    "total_time": 0.117115522
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_45180df409",
+  "x_groq": {
+    "id": "req_01ks1y6r8rf9eas3mmsb26kw95",
+    "seed": 1781202373
+  },
+  "service_tier": "on_demand"
+}

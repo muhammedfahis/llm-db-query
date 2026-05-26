@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-b87d2419-2189-4301-8440-713a67bc89c8",
+  "object": "chat.completion",
+  "created": 1779255390,
+  "model": "llama-3.3-70b-versatile",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "There are 19 orders with status delivered."
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.159213591,
+    "prompt_tokens": 3669,
+    "prompt_time": 0.208391494,
+    "completion_tokens": 10,
+    "completion_time": 0.028141793,
+    "total_tokens": 3679,
+    "total_time": 0.236533287
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_3272ea2d91",
+  "x_groq": {
+    "id": "req_01ks1y5bjge5z9353qhbevt2r9",
+    "seed": 586991946
+  },
+  "service_tier": "on_demand"
+}

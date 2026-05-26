@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package store;
+
+service StoreService {
+  rpc ListCollections (Empty)           returns (DataResponse);
+  rpc QueryCollection  (JsonPayload)    returns (DataResponse);
+  rpc FindById         (FindByIdRequest) returns (DataResponse);
+  rpc Aggregate        (JsonPayload)    returns (DataResponse);
+}
+
+message Empty {}
+
+// Complex inputs (filters, sort, params) are serialised as JSON strings
+// to avoid mirroring the entire query schema in protobuf.
+message JsonPayload {
+  string json = 1;
+}
+
+message FindByIdRequest {
+  string collection = 1;
+  string id         = 2;
+  repeated string populate = 3;
+}
+
+// json holds the result on success; error is set on failure.
+message DataResponse {
+  string json  = 1;
+  string error = 2;
+}

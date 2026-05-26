@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Analytics Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.3px;
+    }
+    header .meta {
+      font-size: 12px;
+      color: #64748b;
+    }
+    #new-chat-btn {
+      background: #2d3148;
+      border: 1px solid #3d4268;
+      color: #a78bfa;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    #new-chat-btn:hover { background: #3d4268; }
+
+    /* ── Messages area ── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
+
+    .message-row {
+      display: flex;
+      padding: 12px 20px;
+      gap: 14px;
+      animation: fadeIn 0.2s ease;
+    }
+    .message-row.user   { background: transparent; }
+    .message-row.assistant { background: #141722; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      margin-top: 2px;
+    }
+    .user .avatar     { background: #3730a3; }
+    .assistant .avatar { background: #1e293b; border: 1px solid #2d3148; }
+
+    .bubble {
+      flex: 1;
+      min-width: 0;
+      line-height: 1.65;
+      font-size: 14.5px;
+      color: #cbd5e1;
+      padding-top: 5px;
+    }
+    .user .bubble { color: #e2e8f0; }
+
+    /* Markdown styles inside assistant bubbles */
+    .bubble table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .bubble th, .bubble td {
+      border: 1px solid #2d3148;
+      padding: 6px 12px;
+      text-align: left;
+    }
+    .bubble th { background: #1e293b; color: #a78bfa; font-weight: 600; }
+    .bubble tr:nth-child(even) td { background: #141722; }
+    .bubble code {
+      background: #1e293b;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 13px;
+      font-family: 'Fira Code', monospace;
+      color: #7dd3fc;
+    }
+    .bubble pre {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .bubble pre code { background: none; padding: 0; color: #e2e8f0; }
+    .bubble ul, .bubble ol { padding-left: 20px; margin: 6px 0; }
+    .bubble li { margin: 3px 0; }
+    .bubble p  { margin: 6px 0; }
+    .bubble h3, .bubble h4 { color: #a78bfa; margin: 10px 0 4px; }
+    .bubble strong { color: #e2e8f0; }
+
+    .meta-pill {
+      display: inline-flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-size: 11px;
+      background: #1e293b;
+      border: 1px solid #2d3148;
+      border-radius: 20px;
+      padding: 2px 8px;
+      color: #64748b;
+    }
+    .pill.tool { color: #7dd3fc; }
+
+    /* ── Typing indicator ── */
+    .typing-indicator {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding-top: 4px;
+    }
+    .typing-indicator span {
+      width: 7px; height: 7px;
+      background: #4f46e5;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%            { transform: translateY(-6px); }
+    }
+
+    /* ── Empty state ── */
+    #empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #475569;
+      padding-bottom: 60px;
+    }
+    #empty-state .icon { font-size: 40px; }
+    #empty-state h2 { font-size: 18px; color: #64748b; font-weight: 500; }
+    #empty-state p  { font-size: 13px; max-width: 360px; text-align: center; line-height: 1.6; }
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .chip {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .chip:hover { border-color: #a78bfa; color: #a78bfa; }
+
+    /* ── Input area ── */
+    #input-area {
+      flex-shrink: 0;
+      padding: 16px 20px;
+      background: #1a1d27;
+      border-top: 1px solid #2d3148;
+    }
+    #input-form {
+      display: flex;
+      gap: 10px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    #question-input {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 10px 16px;
+      color: #e2e8f0;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      height: 44px;
+      max-height: 140px;
+      overflow-y: auto;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    #question-input:focus  { border-color: #4f46e5; }
+    #question-input::placeholder { color: #475569; }
+
+    #send-btn {
+      background: #4f46e5;
+      border: none;
+      border-radius: 10px;
+      padding: 0 18px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 18px;
+      transition: background 0.15s, transform 0.1s;
+      flex-shrink: 0;
+      height: 44px;
+    }
+    #send-btn:hover:not(:disabled) { background: #4338ca; }
+    #send-btn:active:not(:disabled) { transform: scale(0.95); }
+    #send-btn:disabled { background: #2d3148; color: #475569; cursor: not-allowed; }
+
+    #hint {
+      text-align: center;
+      font-size: 11px;
+      color: #334155;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>&#127760; Store Analytics</h1>
+  <span class="meta" id="session-label">New session</span>
+  <button id="new-chat-btn">+ New Chat</button>
+</header>
+
+<div id="messages">
+  <div id="empty-state">
+    <div class="icon">&#128202;</div>
+    <h2>Ask about your store</h2>
+    <p>Query orders, products, users, payments and more using plain English.</p>
+    <div class="suggestion-chips">
+      <span class="chip" data-q="How many orders are there in total?">Total orders</span>
+      <span class="chip" data-q="What are the top 5 products by revenue?">Top products</span>
+      <span class="chip" data-q="How many users registered this month?">New users</span>
+      <span class="chip" data-q="Show me the 10 most recent orders with their status">Recent orders</span>
+      <span class="chip" data-q="What is the average order value?">Avg order value</span>
+    </div>
+  </div>
+</div>
+
+<div id="input-area">
+  <form id="input-form">
+    <textarea id="question-input" placeholder="Ask anything about your store…" rows="1"></textarea>
+    <button id="send-btn" type="submit">&#8593;</button>
+  </form>
+  <div id="hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+</div>
+
+<script>
+  const messagesEl   = document.getElementById('messages');
+  const emptyState   = document.getElementById('empty-state');
+  const form         = document.getElementById('input-form');
+  const input        = document.getElementById('question-input');
+  const sendBtn      = document.getElementById('send-btn');
+  const sessionLabel = document.getElementById('session-label');
+  const newChatBtn   = document.getElementById('new-chat-btn');
+
+  let sessionId = localStorage.getItem('chat_session_id') || null;
+  let isLoading = false;
+
+  // Restore session label
+  if (sessionId) {
+    sessionLabel.textContent = 'Session: ' + sessionId.slice(0, 8) + '…';
+  }
+
+  // Auto-resize textarea
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+  });
+
+  // Enter = send, Shift+Enter = newline
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isLoading) form.dispatchEvent(new Event('submit'));
+    }
+  });
+
+  // Suggestion chips
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      input.value = chip.dataset.q;
+      input.dispatchEvent(new Event('input'));
+      form.dispatchEvent(new Event('submit'));
+    });
+  });
+
+  // New chat
+  newChatBtn.addEventListener('click', async () => {
+    if (sessionId) {
+      await fetch('/api/session/' + sessionId, { method: 'DELETE' }).catch(() => {});
+      localStorage.removeItem('chat_session_id');
+    }
+    sessionId = null;
+    sessionLabel.textContent = 'New session';
+    messagesEl.innerHTML = '';
+    messagesEl.appendChild(emptyState);
+    emptyState.style.display = 'flex';
+  });
+
+  // Send message
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const question = input.value.trim();
+    if (!question || isLoading) return;
+
+    // Hide empty state
+    if (emptyState.parentNode) {
+      emptyState.style.display = 'none';
+    }
+
+    appendMessage('user', question);
+    input.value = '';
+    input.style.height = '44px';
+
+    const typingRow = appendTyping();
+    setLoading(true);
+
+    try {
+      const body = { question };
+      if (sessionId) body.sessionId = sessionId;
+
+      const res  = await fetch('/api/query', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error ?? data?.message ?? 'Request failed');
+      }
+
+      // Persist session
+      if (data.sessionId && data.sessionId !== sessionId) {
+        sessionId = data.sessionId;
+        localStorage.setItem('chat_session_id', sessionId);
+        sessionLabel.textContent = 'Session: ' + sessionId.slice(0, 8) + '…';
+      }
+
+      typingRow.remove();
+      appendMessage('assistant', data.answer, data.metadata);
+    } catch (err) {
+      typingRow.remove();
+      appendError(err.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function setLoading(v) {
+    isLoading = v;
+    sendBtn.disabled = v;
+    input.disabled   = v;
+  }
+
+  function appendMessage(role, text, meta) {
+    const row = document.createElement('div');
+    row.className = 'message-row ' + role;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if (role === 'assistant') {
+      bubble.innerHTML = marked.parse(text);
+
+      if (meta) {
+        const pills = document.createElement('div');
+        pills.className = 'meta-pill';
+
+        const providerPill = document.createElement('span');
+        providerPill.className = 'pill';
+        providerPill.textContent = meta.provider + ' · ' + meta.model.split('-').slice(0,3).join('-');
+        pills.appendChild(providerPill);
+
+        if (meta.toolsUsed && meta.toolsUsed.length) {
+          const toolPill = document.createElement('span');
+          toolPill.className = 'pill tool';
+          toolPill.textContent = '⚙ ' + [...new Set(meta.toolsUsed)].join(', ');
+          pills.appendChild(toolPill);
+        }
+
+        if (meta.historyTurns > 0) {
+          const ctxPill = document.createElement('span');
+          ctxPill.className = 'pill';
+          ctxPill.textContent = '💬 ' + meta.historyTurns + ' previous turn' + (meta.historyTurns > 1 ? 's' : '') + ' in context';
+          pills.appendChild(ctxPill);
+        }
+
+        bubble.appendChild(pills);
+      }
+    } else {
+      bubble.textContent = text;
+    }
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    return row;
+  }
+
+  function appendTyping() {
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    return row;
+  }
+
+  function appendError(msg) {
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+    row.innerHTML = `
+      <div class="avatar" style="background:#7f1d1d">⚠</div>
+      <div class="bubble" style="color:#fca5a5">${msg}</div>
+    `;
+    messagesEl.appendChild(row);
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+</script>
+</body>
+</html>
